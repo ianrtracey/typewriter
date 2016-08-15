@@ -16,7 +16,9 @@ end
 describe "Typeform API" do
   it "can get form data" do
     result = API::Typeform.get_form('C7QX2g')
-    result.form
     expect(result.contents).to_not be_nil
+    expect(result.questions).to_not be_nil
+    expect(result.answers).to_not be_nil
+    expect(result.form).to_not be_nil
   end
 end

@@ -33,13 +33,16 @@ class TypeformResponse
     merged_form.map do |entry|
       entry.inject({}) do |collection, field|
         question = field[:question]
-        group = question[:group].to_sym
-        binding.pry
-        if collection.include? group
+        group = question[:group].to_s
+        if group.nil?
+          group = question[:field_id].to_s
+        end
+        if !collection[group].nil?
           collection[group] << field
         else
           collection[group] = [field]
         end
+        collection
       end
     end
   end
