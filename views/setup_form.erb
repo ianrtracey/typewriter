@@ -1,0 +1,13 @@
+<h3>You have the following forms</h3>
+<p>Please select the form you would like to import.</p>
+
+<form method="POST" action="/setup">
+  <ul>
+  <% @forms.each do |form| %>
+    <li><input type="checkbox" name="selected_forms[]" value=<%=form[:id]%>>
+        <%= form[:name] %>
+    </input></li>
+  <% end %>
+  </ul>
+  <input type="submit" value="continue">
+</form>

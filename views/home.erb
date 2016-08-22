@@ -1,0 +1,7 @@
+<h1>Home</h1>
+
+<ul>
+<% @forms.each do |form| %>
+  <li><a href=<%="/forms/#{form}" %>><%= form %></li>
+<% end %>
+</ul>

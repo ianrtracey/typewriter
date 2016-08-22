@@ -1,0 +1,9 @@
+
+Typewriter Flow
+1. Ask for API Key
+2. Find forms, ask for which form
+3. Find questions, select 6 of them
+4. Set default fetch time
+5. Actions?
+
+
