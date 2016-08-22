@@ -21,4 +21,18 @@ describe "Typeform API" do
     expect(result.answers).to_not be_nil
     expect(result.form).to_not be_nil
   end
+
+  it "contains an offset result value in order to support pagination" do
+    result = API::Typeform.get_form('C7QX2g')
+    expect(result.offset).to eql(1)
+    result = API::Typeform.get_form('C7QX2g', 2)
+    expect(result.offset).to eql(2)
+  end
+
+  it "paginates data and can get the next series" do
+    result = API::Typeform.get_form('C7QX2g')
+    expect(result.has_more?).to be_truthy
+    result = API::Typeform.get_form('C7QX2g', 2)
+    expect(result.has_more?).to be_falsy
+  end
 end

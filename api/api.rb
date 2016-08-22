@@ -18,14 +18,29 @@ include API::Integrations
   end
 
   module Typeform
-    def self.get_form(form_id)
+
+    def self.get_forms
+      typeform_connection = APIConnection.new(:all_typeforms,
+                                              :key => ENV['TYPEFORM_KEY'])
+      response = typeform_connection.connection.get
+      parsed_response = JSON.parse(response.body, {:symbolize_names => true })
+      return parsed_response
+
+
+    end
+
+    def self.get_form(form_id, offset=1)
       typeform_connection = APIConnection.new(:typeform,
                                               :typeform_UID => form_id,
-                                              :key => ENV['TYPEFORM_KEY']
+                                              :key => ENV['TYPEFORM_KEY'],
+                                              :order_by => 'date_submit',
+                                              :offset => offset.to_s,
+                                              :limit => '1000',
+                                              :completed => 'true'
                                              )
       response = typeform_connection.connection.get
       parsed_response = JSON.parse(response.body, {:symbolize_names => true })
-      return TypeformResponse.new(parsed_response)
+      return TypeformResponse.new(parsed_response, :offset => offset)
     end
   end
 end
