@@ -21,19 +21,22 @@ class TypeformResponse
   end
 
   def questions
-    @contents.questions.map do |q|
-      question_type = tokenize_question(q)
-      question = merge({:id => q[:id].to_sym })
-      question.merge(question_type)
+    @contents.questions.inject({}) do |collection, q|
+      question_id = _get_primary_id(q[:id])
+      q[:id] = question_id
+      if collection[q[:id]].nil?
+        collection[q[:id]] = q.merge({:answers => [], :num_choices => 1})
+      else
+        question = collection[q[:id]]
+        question[:num_choices] = question[:num_choices]+1
+      end
+      collection
     end
   end
 
-  def tokenize_question(question_id)
-    tokens = question_id.to_s.split('_')
-    if tokens[0] == "list"
-      return {:type => :list, :list_id => tokens[1]}
-    end
-    return {:type => tokens[0].to_sym}
+  def _get_primary_id(response_id)
+    tokens = response_id.to_s.split('_')
+    tokens[0..1].join("_")
   end
 
   def answers
@@ -41,33 +44,17 @@ class TypeformResponse
   end
 
   def form
-    merged_form = answers.map do |answer|
-      answer.keys.map do |field|
-        associated_question = questions.find { |q| q[:id] == field }
-        {
-         :answer => answer[field],
-         :question => associated_question
-        }
-      end
-    end
-    binding.pry
-    merged_form.map do |entry|
-      entry.inject({}) do |collection, field|
-        question = field[:question]
-        group = question[:group].to_s
-        if group.nil?
-          group = question[:field_id].to_s
+    answers.map do |answer|
+      question_set = questions
+      answer.inject(question_set) do |collection, field|
+        answer_id = field[0].to_s
+        id = _get_primary_id(answer_id)
+        if collection[id].nil?
+          raise "NO question for id #{id}"
         end
-        if !collection[group].nil?
-          collection[group] << field
-        else
-          collection[group] = [field]
-        end
-        collection
+        collection[id][:answers] << field[1]
+      question_set
       end
-    end
-    merged_form.each do |group, field|
-    # need the ability to collect the list_<id>_<choice> items that are found
     end
   end
 end

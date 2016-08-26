@@ -6,4 +6,10 @@ Typewriter Flow
 4. Set default fetch time
 5. Actions?
 
+Elements
+1. Concepts of 'states'
+2. Concepts of 'actions'
+  3. ability to link forms together?
+     - how would this work? Probably need to define a primary key or something
+     - link together using a UUID?
 

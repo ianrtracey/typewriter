@@ -1,9 +1,11 @@
 require './api/api'
 require './api/APIConnection'
+require './db/db_connection'
 
 class Typewriter < Sinatra::Base
 
   enable :sessions
+  db = DBConnection.new
 
   get '/' do
     # need to hash the typeform_api key
@@ -21,7 +23,9 @@ class Typewriter < Sinatra::Base
   end
 
   get '/forms/:form_id' do
-    params[:form_id]
+    @form = API::Typeform.get_form(params[:form_id],
+                                    key=session[:typeform_api_key])
+    erb :form
   end
 
   get '/setup' do
