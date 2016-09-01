@@ -5,7 +5,7 @@ require_relative './db_config.rb'
 class DBConnection
   include DBConfig
 
-  def initialize(addresses=DBConfig::DB_ADDRESSES, db_name=DBConfig::DB_NAME)
+  def initialize(addresses: DBConfig::DB_ADDRESSES, db_name: DBConfig::DB_NAME)
     Mongo::Logger.logger.level = ::Logger::FATAL
     @client = Mongo::Client.new(addresses, :database => db_name)
   end
@@ -16,6 +16,10 @@ class DBConnection
 
   def forms
     @client[:forms]
+  end
+
+  def users
+    @client[:users]
   end
 
 

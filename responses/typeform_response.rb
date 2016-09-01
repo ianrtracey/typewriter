@@ -53,6 +53,7 @@ class TypeformResponse
           raise "NO question for id #{id}"
         end
         collection[id][:answers] << field[1]
+        collection[id][:answers] = collection[id][:answers].reject { |a| a.to_s.empty? }
       question_set
       end
     end
