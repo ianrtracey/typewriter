@@ -9,12 +9,55 @@ class Typewriter < Sinatra::Base
   db = DBConnection.new
   user_collection = db.users
 
+  before do
+    pass if request.path_info == "/login"
+    if session[:user_id].nil?
+      redirect '/login'
+    else
+      @current_user_id = session[:user_id]
+    end
+  end
+
   get '/' do
     # need to hash the typeform_api key
-    if session[:typeform_api_key].nil? || session[:forms].empty?
-      redirect '/setup'
+    if session[:user_id].nil?
+      redirect '/login'
     else
       redirect '/home'
+    end
+  end
+  get '/login' do
+    erb :login
+  end
+
+  post '/login' do
+    user = user_collection.find({ username: params[:username]}).first
+    if user.nil?
+      redirect '/login'
+    end
+    if user[:password] != params[:password]
+      redirect '/login'
+    end
+    session[:user_id] = user[:user_id]
+    redirect '/home'
+  end
+
+  get '/signup' do
+    erb :signup
+  end
+
+  post '/signup' do
+    if params[:username].nil? || params[:password].nil?
+      redirect '/signup'
+    else
+      user_id = SecureRandom.uuid
+      user_collection.insert_one({
+        :user_id => user_id,
+        :username => params[:username],
+        :password => params[:password]
+      })
+      session[:user_id] = user_id
+      redirect '/setup'
     end
   end
 

@@ -1,9 +1,10 @@
 require_relative './model'
 
 class Form < Model
+  @@type = :form
+
   def initialize(form_id, user_id, attributes)
      super()
-     @type = :form
      @form_id = form_id
      @user_id = user_id
      @attributes = attributes
@@ -15,6 +16,10 @@ class Form < Model
        form_id: @form_id,
        user_id: @user_id
      }.merge(@attributes)
-     super(@type, doc)
+     super(@@type, doc)
+  end
+
+  def self.find(user_id, params)
+     super(@@type, user_id, params)
   end
 end
