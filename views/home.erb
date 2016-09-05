@@ -1,7 +1,8 @@
 <h1>Home</h1>
 
-<ul>
+<dl>
 <% @forms.each do |form| %>
-  <li><a href=<%="/forms/#{form}" %>><%= form %></li>
+  <dt> Some Form </dt>
+  <dd><a href=<%="/forms/#{form}" %>><%= form %></li><span><div class="loading"></div></span</dd>
 <% end %>
-</ul>
+</dl>

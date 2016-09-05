@@ -2,20 +2,24 @@ require './api/api'
 require './api/APIConnection'
 require './db/db_connection'
 require 'securerandom'
+require 'sidekiq/api'
+require 'sinatra'
+require './workers/form_import_worker'
 
 class Typewriter < Sinatra::Base
 
   enable :sessions
   db = DBConnection.new
   user_collection = db.users
+  sidekiq_stats = Sidekiq::Stats.new
 
   before do
-    pass if request.path_info == "/login"
-    if session[:user_id].nil?
-      redirect '/login'
-    else
-      @current_user_id = session[:user_id]
-    end
+  #   pass if ["/login", '/signup'].include? request.path_info
+  #   if session[:user_id].nil?
+  #     redirect '/login'
+  #   else
+  #     @current_user ||= user_collection.find({user_id:session[:user_id]}).first
+  #   end
   end
 
   get '/' do
@@ -28,6 +32,43 @@ class Typewriter < Sinatra::Base
   end
   get '/login' do
     erb :login
+  end
+
+  post '/auth-test' do
+    username = params[:username]
+    password = params[:password]
+
+    content_type :json
+    user = user_collection.find({ username: params[:username]}).first
+    if user.nil?
+      halt 401
+    end
+    if user[:password] != params[:password]
+      halt 401
+    end
+
+    { token: token(username)}.to_json
+  end
+
+  def token(username)
+    JWT.encode payload(username), ENV['JWT_SECRET'], 'HS256'
+  end
+
+  def payload(username)
+    {
+      exp: Time.now.to_i + 60 *60,
+      iat: Time.now.to_i,
+      iss: ENV['JWT_ISSUER'],
+      scopes: ['get_forms'],
+      user: {
+        username: username
+      }
+    }
+  end
+
+  get '/job-test' do
+    FormImportWorker.perform_async(@current_user, "foobar")
+    "submitted"
   end
 
   post '/login' do
@@ -54,7 +95,9 @@ class Typewriter < Sinatra::Base
       user_collection.insert_one({
         :user_id => user_id,
         :username => params[:username],
-        :password => params[:password]
+        :password => params[:password],
+        :forms => [],
+        :api_key => ""
       })
       session[:user_id] = user_id
       redirect '/setup'
@@ -62,8 +105,10 @@ class Typewriter < Sinatra::Base
   end
 
   get '/home' do
-    p "forms #{session[:forms]}"
-    @forms = user_collection.find.first[:forms]
+    if @current_user[:api_key].empty? || @current_user[:forms].empty?
+      redirect '/setup'
+    end
+    @forms = @current_user[:forms]
     erb :home
   end
 
@@ -88,9 +133,9 @@ class Typewriter < Sinatra::Base
   end
 
   get '/setup' do
-    if user_collection.find.first[:api_key].nil?
+    if @current_user[:api_key].empty?
       erb :setup_key
-    elsif user_collection.find.first[:forms].empty?
+    elsif @current_user[:forms].empty?
       key = user_collection.find.first[:api_key]
       @forms = API::Typeform.get_forms(key=key)
       erb :setup_form
@@ -100,17 +145,17 @@ class Typewriter < Sinatra::Base
   end
 
   post '/setup' do
-    unless user_collection.find.first[:api_key].nil?
-      user_collection.insert_one(
-        {
-          user_id: SecureRandom.uuid,
-          forms: [],
-          api_key: params[:typeform_api_key]
-        }
+    unless params[:api_key].nil?
+      user_collection.update_one({
+        user_id: @current_user[:user_id]},
+        { '$set' => { 'api_key' => params[:api_key] }}
       )
     end
-    unless params[:selected_forms].empty?
-      user_collection.update_many({}, '$set' => { 'forms' => params[:selected_forms]})
+    unless params[:selected_forms].nil?
+      user_collection.update_one({
+        user_id: @current_user[:user_id]},
+        { '$set' => { 'forms' => params[:selected_forms] }}
+      )
     end
     redirect '/setup'
   end
