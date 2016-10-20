@@ -3,15 +3,17 @@ require './api/APIConnection'
 require './db/db_connection'
 require 'securerandom'
 require 'sidekiq/api'
-require 'sinatra'
 require './workers/form_import_worker'
 
 class Typewriter < Sinatra::Base
 
   enable :sessions
+  set :public_folder, Proc.new { File.join(File.dirname(__FILE__), 'public') }
   db = DBConnection.new
   user_collection = db.users
+  form_collection = db.forms
   sidekiq_stats = Sidekiq::Stats.new
+  API_KEY = ENV['TYPEFORM_KEY']
 
   before do
   #   pass if ["/login", '/signup'].include? request.path_info
@@ -23,17 +25,32 @@ class Typewriter < Sinatra::Base
   end
 
   get '/' do
-    # need to hash the typeform_api key
-    if session[:user_id].nil?
-      redirect '/login'
-    else
-      redirect '/home'
-    end
-  end
-  get '/login' do
-    erb :login
+    File.read(File.join('public', 'index.html'))
   end
 
+  get '/v1/api/forms' do
+    forms = form_collection.find({}).to_a
+    return forms
+  end
+
+  get '/v1/api/typeform/forms' do
+    forms = API::Typeform.get_forms(key=API_KEY)
+    return JSON.generate(forms)
+  end
+
+  post '/v1/api/forms' do
+    p JSON.parse(request.body.read)
+    FormImportWorker.perform_async(@current_user, "foobar")
+    return 200
+  end
+
+  get '/v1/api/forms/:form_id' do
+    return 200
+  end
+
+  put '/v1/api/forms/:form_id' do
+    return 200
+  end
   post '/auth-test' do
     username = params[:username]
     password = params[:password]
